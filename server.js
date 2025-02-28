@@ -19,6 +19,7 @@ mongoose.connect(process.env.MongoDB_URL, {
 .then(() => console.log('MongoDB connected'))
 .catch( err => console.log('Error connecting to MongoDB : ' , err))
 
+
 app.use('/api/auth', authRoutes);
 
 app.listen(PORT, () => {
