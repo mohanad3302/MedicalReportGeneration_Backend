@@ -15,7 +15,7 @@ const bcrypt = require('bcrypt');
         const newUser = new User(req.body)
         
         await newUser.save();
-        res.status(201).json({message:"user Created successfully", user : newUser})
+        res.status(201).json({message:"user Created successfully", FirstName : newUser.FirstName , LastName : newUser.LastName  })
         
     }
 
@@ -32,15 +32,15 @@ const bcrypt = require('bcrypt');
         console.log(Email , " : " , Password)
         const user = await User.findOne({Email})
         if (!user){
-            return res.status(400).json({message: 'Invalid credentials'})
+            return res.status(401).json({message: 'Invalid credentials'})
         }
 
         const password_match = await bcrypt.compare(Password, user.Password);
         if (!password_match){
-            return res.status(400).json({ message: 'Invalid credentials' });
+            return res.status(401).json({ message: 'Invalid credentials' });
         }
 
-        res.status(200).json({message : 'User signed in successfully', user :user})
+        res.status(200).json({message : 'User signed in successfully',  FirstName : user.FirstName , LastName : user.LastName })
 
     } catch (error) {
         console.error(error);

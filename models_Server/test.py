@@ -3,25 +3,28 @@ from openai import OpenAI
 # Initialize the OpenAI client with OpenRouter
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
-    api_key="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",
+    api_key="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",
 )
 
-# Define the predicted classes (diseases or conditions)
 predicted_classes = ["Effusion"]
 
-# Define the system and user messages for the prompt
 messages = [
     {
         "role": "system",
         "content": (
-            "You are an expert radiologist. Based on the input disease or condition, your task is to provide a brief and factual "
-            "description of the disease or condition, focusing only on general characteristics. Your response should be concise, "
-            "accurate, and free from unnecessary details."
+            "You are an expert radiologist. Based on the input disease/condition, generate "
+            "a radiology report with two clearly labeled sections. Follow these rules:\n"
+            "1. IMPRESSION: Describe the finding in general terms without specifying location "
+            "or laterality (since this information isn't provided). Keep it concise.\n"
+            "2. RECOMMENDATION: Provide appropriate clinical follow-up suggestions.\n"
+            "3. Use exact formatting: 'IMPRESSION:' and 'RECOMMENDATION:' in all caps with colons.\n"
+            "4. Never assume or invent details not provided in the input.\n"
+            "5. If multiple findings are provided, address each separately but concisely."
         )
     },
     {
         "role": "user",
-        "content": f"Disease: {', '.join(predicted_classes)}"
+        "content": f"Finding: {', '.join(predicted_classes)}. Generate a report without specifying location."
     }
 ]
 
@@ -36,5 +39,16 @@ completion = client.chat.completions.create(
     messages=messages  # Pass the messages for the prompt
 )
 
-# Print the generated response
-print(completion.choices[0].message.content)
+# Get the generated response
+response = completion.choices[0].message.content
+
+# Example of how to separate the sections (if the format is consistent)
+if "IMPRESSION:" in response and "RECOMMENDATION:" in response:
+    # Split the response into parts
+    parts = response.split("IMPRESSION:")
+    impression_part = parts[1].split("RECOMMENDATION:")[0].strip()
+    recommendation_part = parts[1].split("RECOMMENDATION:")[1].strip()
+    
+    print("\nSeparated Sections:")
+    print("IMPRESSION:", impression_part)
+    print("RECOMMENDATION:", recommendation_part)

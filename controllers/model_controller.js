@@ -16,7 +16,7 @@ async function process_image(req, res) {
         formData.append('file', fs.createReadStream(imagePath));
 
         // Send the image to the Flask API using fetch
-        const flaskResponse = await fetch('http://127.0.0.1:3000/predict', {
+        const flaskResponse = await fetch('http://127.0.0.1:3001/predict', {
             method: 'POST',
             body: formData,
             headers: formData.getHeaders(), // Automatically sets Content-Type
@@ -35,7 +35,8 @@ async function process_image(req, res) {
         res.status(200).json({
             message: 'Image uploaded successfully',
             predicted_disease: disease,
-            generated_report : report
+            impression : report.impression,
+            recommendation : report.recommendation
         });
     } catch (error) {
         console.error('Error uploading image:', error.message);
@@ -46,47 +47,70 @@ async function process_image(req, res) {
     }
 }
 
-async function GenerateReport(predictedClasses) {
-    const openRouterApiKey = "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";
+async function GenerateReport(predictedClass) {
+    const openRouterApiKey = "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";
     const model = "deepseek/deepseek-r1-zero:free";
     
     const messages = [
-      {
-        role: "system",
-        content: "You are an expert radiologist. Based on the input disease or condition, your task is to provide a brief and factual description of the disease or condition, focusing only on general characteristics. Your response should be concise, accurate, and free from unnecessary details."
-      },
-      {
-        role: "user",
-        content: `Disease: ${predictedClasses}`
-      }
-    ];
-  
+  {
+    role: "system",
+    content: `You are an expert radiologist. Based on the input disease/condition, generate 
+a radiology report with two clearly labeled sections. Follow these rules:
+1. IMPRESSION: provide a brief and factual description of the disease or condition, focusing only on general characteristicswithout specifying location 
+or laterality (since this information isn't provided). Keep it concise .
+2. RECOMMENDATION: Provide appropriate clinical follow-up suggestions.
+3. Use exact formatting: 'IMPRESSION:' and 'RECOMMENDATION:' in all caps with colons.
+4. Never assume or invent details not provided in the input.
+5. If multiple findings are provided, address each separately but concisely.`
+  },
+  {
+    role: "user",
+    content: `Finding: ${predictedClass}. Generate a report without specifying location.`
+  }
+];
+
     try {
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${openRouterApiKey}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": "<YOUR_SITE_URL>",  // Optional
-          "X-Title": "<YOUR_SITE_NAME>",      // Optional
-        },
-        body: JSON.stringify({
-          model: model,
-          messages: messages
-        })
-      });
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            headers: {
+            "Authorization": `Bearer ${openRouterApiKey}`,
+            "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+            model: model,
+            messages: messages
+            })
+        });
   
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
-      }
+        if (!response.ok) {
+            throw new Error(`API request failed with status ${response.status}`);
+        }
   
-      const data = await response.json();
-      return data.choices[0].message.content;
+        const data = await response.json();
+        const reportData = data.choices[0].message.content;
+        let impression_part = "";
+        let recommendation_part =""; 
+
+        if (reportData.includes("IMPRESSION:") && reportData.includes("RECOMMENDATION:")) {
+
+            const parts = reportData.split("IMPRESSION:");
+            console.log(parts)
+            const impressionAndRecommendation = parts[1].split("RECOMMENDATION:");
+            impression_part = impressionAndRecommendation[0].trim();
+            recommendation_part = impressionAndRecommendation[1].trim();
+        }
+        return {
+            impression:impression_part, 
+            recommendation:recommendation_part
+        };
+
     } catch (error) {
       console.error("Error fetching radiology description:", error);
       return null;
     }
   }
+
+
 
 module.exports = {
     process_image

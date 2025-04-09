@@ -70,5 +70,5 @@ def predict():
 
 # Run the Flask app
 if __name__ == '__main__':
-    app.run(port = 3000)
+    app.run(port = 3001)
     CORS(app)  
