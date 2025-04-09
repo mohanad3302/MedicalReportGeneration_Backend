@@ -7,7 +7,7 @@ client = OpenAI(
 )
 
 # Define the predicted classes (diseases or conditions)
-predicted_classes = ["pneumonia"]
+predicted_classes = ["Effusion"]
 
 # Define the system and user messages for the prompt
 messages = [
