@@ -1,28 +1,29 @@
 const fs = require('fs');
 const FormData = require('form-data');
 const fetch = require('node-fetch');
+const Reports = require('../schemas/reports_schema');
+const mongoose = require('mongoose');
+const XrayImages = require('../schemas/images_schema');
 
 async function process_image(req, res) {
     try {
         if (!req.file) {
             return res.status(400).json({ message: 'No file uploaded' });
         }
-
-        // Path to the uploaded file
+        
+        const userId = req.params.userId;
         const imagePath = req.file.path;
 
-        // Create a FormData object and append the image
         const formData = new FormData();
         formData.append('file', fs.createReadStream(imagePath));
 
-        // Send the image to the Flask API using fetch
         const flaskResponse = await fetch('http://127.0.0.1:3001/predict', {
             method: 'POST',
             body: formData,
-            headers: formData.getHeaders(), // Automatically sets Content-Type
+            headers: formData.getHeaders(), 
         });
 
-        // Check if the request was successful
+    
         if (!flaskResponse.ok) {
             throw new Error(`HTTP error! Status: ${flaskResponse.status}`);
         }
@@ -32,6 +33,9 @@ async function process_image(req, res) {
         const disease = responseData.predicted_class[0]
         const report = await GenerateReport(disease)
         // Send the Flask API response back to the client
+
+        saveReport = await SaveReportAndImage (imagePath,userId, disease, report.impression, report.recommendation)
+        
         res.status(200).json({
             message: 'Image uploaded successfully',
             predicted_disease: disease,
@@ -110,6 +114,31 @@ or laterality (since this information isn't provided). Keep it concise .
     }
   }
 
+  const SaveReportAndImage = async (ImageUrl,userId, disease, impression, recommendation) => {
+    try {
+        const userObjectId = new mongoose.Types.ObjectId(userId)
+        const newImage = new XrayImages({
+            UserId: userObjectId,
+            ImageUrl: ImageUrl
+        });
+        
+        saveImage = await newImage.save();
+        console.log("Image saved successfully");
+
+        const newReport = new Reports({
+            UserId: userObjectId,
+            XrayImageId: saveImage._id,
+            Disease: disease,
+            Imression: impression,
+            Findings: disease
+        });
+
+        await newReport.save();
+        console.log("Report saved successfully");
+    } catch (error) {
+        console.error("Error saving report:", error);
+    }
+}
 
 
 module.exports = {

@@ -15,8 +15,7 @@ const bcrypt = require('bcrypt');
         const newUser = new User(req.body)
         
         await newUser.save();
-        res.status(201).json({message:"user Created successfully", FirstName : newUser.FirstName , LastName : newUser.LastName  })
-        
+        res.status(201).json({message:"user Created successfully", FirstName : newUser.FirstName , LastName : newUser.LastName  })  
     }
 
     catch(error){

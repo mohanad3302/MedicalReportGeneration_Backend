@@ -6,8 +6,10 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 
 
-const authRoutes = require('./routes/auth');
-const modelRoutes = require('./routes/model')
+const authRoutes = require('./routes/auth_routes');
+const modelRoutes = require('./routes/model_routes');
+const reportRoutes = require('./routes/reports_routes');
+const userRoutes = require('./routes/user_routes');
 
 const upload = multer({ dest: 'uploads/' });
 
@@ -30,9 +32,10 @@ mongoose.connect(process.env.MongoDB_URL, {
 .catch( err => console.log('Error connecting to MongoDB : ' , err))
 
 
+app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/model', upload.single('file'), modelRoutes);
-
+app.use('/api/reports', reportRoutes);
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
