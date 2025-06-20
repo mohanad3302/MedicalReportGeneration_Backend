@@ -4,6 +4,9 @@ const fetch = require('node-fetch');
 const Reports = require('../schemas/reports_schema');
 const mongoose = require('mongoose');
 const XrayImages = require('../schemas/images_schema');
+const {sendEmail} = require('../controllers/notification_controller');
+
+const {getDoctorWithLeastReports} = require('./doctor_controller');
 
 async function process_image(req, res) {
     try {
@@ -53,7 +56,7 @@ async function process_image(req, res) {
 
 async function GenerateReport(predictedClass) {
     const openRouterApiKey = "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";
-    const model = "deepseek/deepseek-r1-zero:free";
+    const model = "meta-llama/llama-3.3-70b-instruct:free";
     
     const messages = [
   {
@@ -125,12 +128,22 @@ or laterality (since this information isn't provided). Keep it concise .
         saveImage = await newImage.save();
         console.log("Image saved successfully");
 
+        const leastDoctor = await getDoctorWithLeastReports();
+        console.log("Least Doctor:", leastDoctor);
+        const doctorObjectId = new mongoose.Types.ObjectId(leastDoctor._id);
         const newReport = new Reports({
             UserId: userObjectId,
+            DoctorId: doctorObjectId,
             XrayImageId: saveImage._id,
             Disease: disease,
-            Imression: impression,
+            Impression: impression,
             Findings: disease
+        });
+
+        await sendEmail({
+            to: leastDoctor.Email,
+            subject: 'New X-ray Report Assigned',
+            text: `A new X-ray report has been assigned to you. Please check the system for details.`
         });
 
         await newReport.save();
@@ -139,6 +152,7 @@ or laterality (since this information isn't provided). Keep it concise .
         console.error("Error saving report:", error);
     }
 }
+
 
 
 module.exports = {

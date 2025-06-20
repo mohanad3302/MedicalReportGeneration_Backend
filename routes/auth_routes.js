@@ -1,8 +1,11 @@
 const express = require('express');
-const { signin, signup } = require('../controllers/auth_controller');
+const { signinUser, signupUser , signinDoctor,signupDoctor } = require('../controllers/auth_controller');
 const router = express.Router();
 
-router.post('/signup' , signup);
-router.post('/signin' , signin);
+router.post('/signupUser' , signupUser);
+router.post('/signinUser' , signinUser);
+router.post('/signupDoctor' , signupDoctor);
+router.post('/signinDoctor' , signinDoctor);
+
 
 module.exports = router;
