@@ -12,11 +12,30 @@ const reportRoutes = require('./routes/reports_routes');
 const userRoutes = require('./routes/user_routes');
 const doctorRoutes = require('./routes/doctor_routes'); // Assuming you have a doctor routes file
 
-const upload = multer({ dest: 'uploads/' });
+const cloudinary = require('cloudinary').v2;
+const {CloudinaryStorage} = require('multer-storage-cloudinary');
 
 
 dotenv.config();
 
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'xray_uploads', // or any folder name you want in Cloudinary
+    allowed_formats: ['jpg', 'jpeg', 'png'],
+    public_id: (req, file) => Date.now() + '-' + file.originalname,
+  },
+});
+
+const upload = multer({dest:'temp_uploads/'});
+
+// { storage : storage }
 
 const app = express();
 const PORT = process.env.PORT
@@ -24,7 +43,6 @@ const PORT = process.env.PORT
 app.use(express.json());
 app.use(cors());
 
-app.use('/uploads', express.static('uploads'));
 
 mongoose.connect(process.env.MongoDB_URL, {
     useNewUrlParser : true,

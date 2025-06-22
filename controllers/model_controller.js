@@ -5,8 +5,9 @@ const Reports = require('../schemas/reports_schema');
 const mongoose = require('mongoose');
 const XrayImages = require('../schemas/images_schema');
 const {sendEmail} = require('../controllers/notification_controller');
-
+const dotenv = require('dotenv').config();
 const {getDoctorWithLeastReports} = require('./doctor_controller');
+const cloudinary = require('cloudinary').v2;
 
 async function process_image(req, res) {
     try {
@@ -15,10 +16,11 @@ async function process_image(req, res) {
         }
         
         const userId = req.params.userId;
-        const imagePath = req.file.path;
+        const tempPath = req.file.path;
 
+        console.log(tempPath)
         const formData = new FormData();
-        formData.append('file', fs.createReadStream(imagePath));
+        formData.append('file', fs.createReadStream(tempPath));
 
         const flaskResponse = await fetch('http://127.0.0.1:3001/predict', {
             method: 'POST',
@@ -37,8 +39,15 @@ async function process_image(req, res) {
         const report = await GenerateReport(disease)
         // Send the Flask API response back to the client
 
+        const cloudinaryRes = await cloudinary.uploader.upload(tempPath , {
+            folder : 'xray_uploads'
+        });
+
+        const imagePath = cloudinaryRes.secure_url;
+
         saveReport = await SaveReportAndImage (imagePath,userId, disease, report.impression, report.recommendation)
         
+        fs.unlinkSync(tempPath)
         res.status(200).json({
             message: 'Image uploaded successfully',
             predicted_disease: disease,
@@ -55,7 +64,7 @@ async function process_image(req, res) {
 }
 
 async function GenerateReport(predictedClass) {
-    const openRouterApiKey = "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";
+    const openRouterApiKey = process.env.MODEL_API_KEY
     const model = "meta-llama/llama-3.3-70b-instruct:free";
     
     const messages = [
