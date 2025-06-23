@@ -6,6 +6,7 @@ from torchvision import models, transforms
 import io
 import base64
 import torch.nn as nn
+import requests
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -45,9 +46,10 @@ def predict():
 
         # Handle base64-encoded image data (e.g., from JSON)
         elif 'image' in request.json:
-            image_data = request.json['image']
-            image_bytes = base64.b64decode(image_data)  # Decode base64
-            image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
+            image_url = request.json['image']
+            response = requests.get(image_url)
+            image = Image.open(io.BytesIO(response.content)).convert('RGB')
+
 
         input_tensor = transform(image).unsqueeze(0)
 

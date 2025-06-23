@@ -18,14 +18,18 @@ async function process_image(req, res) {
         const userId = req.params.userId;
         const tempPath = req.file.path;
 
-        console.log(tempPath)
-        const formData = new FormData();
-        formData.append('file', fs.createReadStream(tempPath));
+        const cloudinaryRes = await cloudinary.uploader.upload(tempPath , {
+            folder : 'xray_uploads'
+        });
 
-        const flaskResponse = await fetch('http://127.0.0.1:3001/predict', {
+        const imagePath = cloudinaryRes.secure_url;
+
+        fs.unlinkSync(tempPath)
+
+        const flaskResponse = await fetch(`${process.env.NGROK_LINK}/predict`, {
             method: 'POST',
-            body: formData,
-            headers: formData.getHeaders(), 
+            headers:  { 'Content-Type': 'application/json' },
+            body: JSON.stringify({image:imagePath})
         });
 
     
@@ -39,15 +43,10 @@ async function process_image(req, res) {
         const report = await GenerateReport(disease)
         // Send the Flask API response back to the client
 
-        const cloudinaryRes = await cloudinary.uploader.upload(tempPath , {
-            folder : 'xray_uploads'
-        });
-
-        const imagePath = cloudinaryRes.secure_url;
-
+       
         saveReport = await SaveReportAndImage (imagePath,userId, disease, report.impression, report.recommendation)
         
-        fs.unlinkSync(tempPath)
+       
         res.status(200).json({
             message: 'Image uploaded successfully',
             predicted_disease: disease,
